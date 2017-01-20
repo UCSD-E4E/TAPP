@@ -1,19 +1,31 @@
 import math
-import numpy
+import numpy as np
+
+from plyfile import PlyData, PlyElement
+from ..utils import ply_utils
 
 
 class Camera(object):
     """Camera will take pictures"""
-    def __init__(self, fov, width, height, _id):
+    def __init__(self, infile, fov, width, height, _id):
         self.fov = fov
         self.width = width
         self.height = height
-        self.rays = []
+
+        self._rays = []
+        self._infile = infile
         self._id = _id
+
+        # TODO: Decide what should happen here
+        try:
+            ply_utils.ply_colorize(infile)
+            self._plydata = PlyData.read(infile)
+        except Exception as ex:
+            print(str(ex))
 
     # TODO: Create pose class which constitutes rpy, lla, coordinate frame and
     # perform transforms between local and global
-    def snap(self, pose, tri):
+    def snap(self, pose):
         """
         Takes a 'picture' of the what the camera can see given a position and
         orientation by through find ray-triangle intersection with the vertices
@@ -31,12 +43,21 @@ class Camera(object):
             []: List of vertices captured in the picture
 
         """
-        for ray in self.rays:
-            if self._check_intersection(pose, tri.v1, tri.v2, tri.v3):
-                # Color triangle
-                pass
+        # TODO: Should this be its own class variable so that its not created
+        # each time.
+        faces = self._plydata['face'].data
+        vertices = self._plydata['vertex'].data
 
-        return
+        for face in faces:
+            vert0, vert1, vert2 = \
+                ply_utils.ply_face2vertices(face[0], vertices)
+
+            for idx, ray in enumerate(self._rays):
+                ret = self._check_intersection(pose, ray, vert0, vert1, vert2)
+                face[1] = face[1] + ret
+
+        self._plydata['face'].data = faces
+        self._plydata.write(self._infile+".new")
 
     def _create_rays(self):
         """
@@ -58,14 +79,16 @@ class Camera(object):
                 Py = (1 - 2 * ((y + 0.5) / self.height)) \
                     * math.tan(self.fov / 2 * math.pi / 180)
 
-                origin = numpy.array([0., 0., 0.])
+                origin = np.array([0., 0., 0.])
 
-                ray = (numpy.array([Px, Py, -1]) - origin) \
+                ray = (np.array([Px, Py, -1]) - origin) \
                     / math.sqrt(Px*Px + Py*Py + 1)
 
-                self.rays.append(ray)
+                self._rays.append(ray)
 
-    def _check_intersection(orig, dir, vert0, vert1, vert2):
+    # TODO: Decide what happens when a ray intersects exactly on a boundary.
+    # Possibly could just allow it to double count the hit for both
+    def _check_intersection(self, orig, dir, vert0, vert1, vert2):
         """
         Ray Triangle Intersection alogrithm derived from "Fast, Minimum storage
         Ray / Triangle Intersection" by Tomas Moller and Ben Trumbore. Two
@@ -88,10 +111,10 @@ class Camera(object):
                 1 - Intersection
         """
 
-        EPSILON = .000001
+        EPSILON = .000000001
 
-        edge1 = vert1 - vert0
-        edge2 = vert2 - vert0
+        edge1 = np.subtract(vert1, vert0)
+        edge2 = np.subtract(vert2, vert0)
 
         pvec = np.cross(dir, edge2)
         det = np.dot(edge1, pvec)
@@ -101,7 +124,7 @@ class Camera(object):
 
         inv_det = 1. / det
 
-        tvec = orig - vert0
+        tvec = np.subtract(orig, vert0)
 
         u = np.dot(tvec, pvec) * inv_det
 
