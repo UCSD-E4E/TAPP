@@ -39,12 +39,11 @@ class Camera(object):
                 locations as well as a list of vertice triplets that make up
                 the triangles.
 
-        Returns:
-            []: List of vertices captured in the picture
-
         """
         # TODO: Should this be its own class variable so that its not created
-        # each time.
+        # each time. Basically need to figure out the best way to store
+        # the ply file. This is probably not going to be on disk and it may
+        # not be inside this class either.
         faces = self._plydata['face'].data
         vertices = self._plydata['vertex'].data
 
@@ -56,8 +55,11 @@ class Camera(object):
                 ret = self._check_intersection(pose, ray, vert0, vert1, vert2)
                 face[1] = face[1] + ret
 
+                # HACK: Cheap way to color only red
+                face[2] = face[2] + 1
+
         self._plydata['face'].data = faces
-        self._plydata.write(self._infile+".new")
+        self._plydata.write(self._infile.strip(".ply")+"_new.ply")
 
     def _create_rays(self):
         """
