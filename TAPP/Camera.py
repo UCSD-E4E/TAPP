@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 from plyfile import PlyData, PlyElement
-from ..utils import ply_utils
+from utils import ply_utils
 
 
 class Camera(object):
@@ -18,7 +18,7 @@ class Camera(object):
 
         # TODO: Decide what should happen here
         try:
-            ply_utils.ply_colorize(infile)
+            ply_utils.colorize(infile)
             self._plydata = PlyData.read(infile)
         except Exception as ex:
             print(str(ex))
@@ -59,6 +59,8 @@ class Camera(object):
                 face[2] = face[2] + 1
 
         self._plydata['face'].data = faces
+
+    def closePly(self):
         self._plydata.write(self._infile.strip(".ply")+"_new.ply")
 
     def _create_rays(self):
