@@ -1,20 +1,25 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+import sys
+import os
 
 import argparse
-import pymesh
-from TAPP.Camera import Camera
 import fileinput
 import numpy as np
 from utils import gdal_utils
 
+from TAPP import Camera
+
+
 def read_meta_file(filename, tag):
-	retval = None
-	for line in fileinput.input(filename):
-		if tag == line.strip().split(':')[0].strip():
-			retval = line.strip().split(':')[1].strip()
-			break
-	fileinput.close()
-	return retval
+    retval = None
+    for line in fileinput.input(filename):
+        if tag == line.strip().split(':')[0].strip():
+            retval = line.strip().split(':')[1].strip()
+            break
+    fileinput.close()
+    return retval
+
 
 def main():
 	parser = argparse.ArgumentParser(description = 'TAPP Camera Pose Coverage Analysis')
@@ -71,4 +76,4 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+    main()

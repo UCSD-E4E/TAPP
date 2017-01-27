@@ -18,7 +18,6 @@ class Camera(object):
 
         # TODO: Decide what should happen here
         try:
-            ply_utils.colorize(infile)
             self._plydata = PlyData.read(infile)
         except Exception as ex:
             print(str(ex))
@@ -49,14 +48,13 @@ class Camera(object):
 
         for face in faces:
             vert0, vert1, vert2 = \
-                ply_utils.ply_face2vertices(face[0], vertices)
+                ply_utils.face2vertices(face[0], vertices)
 
+            # TODO: Come up with coloring schema
             for idx, ray in enumerate(self._rays):
                 ret = self._check_intersection(pose, ray, vert0, vert1, vert2)
                 face[1] = face[1] + ret
-
-                # HACK: Cheap way to color only red
-                face[2] = face[2] + 1
+                face[2] = face[2] + ret
 
         self._plydata['face'].data = faces
 
