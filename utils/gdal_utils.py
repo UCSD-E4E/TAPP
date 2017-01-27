@@ -1,24 +1,23 @@
 from plyfile import PlyData, PlyElement
 from osgeo import gdal
+
 import subprocess
 import numpy as np
-import scipy
-from scipy import ndimage
-import sys
+import scipy.ndimage
 
 
-def pixel2coord(gt, x, y):
+def pixel2coord(tf, x, y):
     """Returns global coordinates from pixel x, y coordinates"""
-    lat = gt[0] + x*gt[1] + y*gt[2]
-    lon = gt[3] + x*gt[4] + y*gt[5]
+    lat = tf[0] + x*tf[1] + y*tf[2]
+    lon = tf[3] + x*tf[4] + y*tf[5]
 
     return lat, lon
 
 
-def coord2pixel(gt, lat, lon):
+def coord2pixel(tf, lat, lon):
     """Transforms lat/lon coordinates to pixel coordinates"""
-    x = int(round((lon-gt[0])/gt[1]))
-    y = int(round((lat-gt[3])/gt[5]))
+    x = int(round((lat-tf[0])/tf[1]))
+    y = int(round((lon-tf[3])/tf[5]))
 
     return x, y
 
@@ -56,7 +55,9 @@ def trim(lat1, lon1, lat2, lon2, infile, outfile):
 
 def tif2mesh(tiffile, plyfile, upsample, interpolation):
     """
-    Turns a tif file into a ply mesh file
+    Turns a tif file into a ply mesh file. Note that for the scale to be
+    correct we assume that the tiff file is in meters. This is handled
+    correctly for utm formats where the pixel size is given in meters.
 
     Args:
         tiffile (string): File name of the tif we are converting
@@ -72,7 +73,7 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
             what they are.
 
     Return:
-        tf (array): Geotransform Matrix
+        size: (numpy.shape) The effective grid size after the transformation
 
     """
     tif = gdal.Open(tiffile)
@@ -82,19 +83,23 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
     cnt = 0
 
     # Get image x,y,z
-    channel = np.array(tif.GetRasterBand(1).ReadAsArray()).astype(np.float32)
+    channel = tif.GetRasterBand(1)
+    no_value = channel.GetNoDataValue()
+
+    # channel = np.array(tif.GetRasterBand(1).ReadAsArray()).astype(np.float32)
+    channel = np.array(channel.ReadAsArray().astype(np.float32))
 
     # Upsample the image with cubic interpolation
     channel = scipy.ndimage.zoom(channel, upsample, order=interpolation)
 
-    # Create our point cloud
+    # Create our point cloud with excessive use of list comprehension
     # TODO: We need to keep in mind that the pixel size should change with
     # upsampling
     points = [(col*tf[1], row*tf[5], channel[row][col])
+              if channel[row][col] != no_value else
+              (col*tf[1], row*tf[5], 0.)
               for row in range(channel.shape[0])
               for col in range(channel.shape[1])]
-
-    print(len(points))
 
     # Create faces from grid. Basically this is just turning  a grid into
     # triangles
@@ -106,17 +111,16 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
                 v3 = cnt + channel.shape[1] + 1
                 v4 = cnt + channel.shape[1]
 
-                faces.append(([v1, v2, v3], 0, 0, 255))
-                faces.append(([v1, v4, v3], 0, 0, 255))
+                faces.append(([v1, v2, v3], 0, 0, 0))
+                faces.append(([v1, v4, v3], 0, 0, 0))
 
             cnt = cnt + 1
-    print cnt
 
     # Create np array for turning vertices and faces into a ply file
     faces = np.array(faces, dtype=[('vertex_indices', 'i4', (3,)),
-                                   ('red', 'u1'),
-                                   ('green', 'u1'),
-                                   ('blue', 'u1')])
+                                   ('red', 'u4'),
+                                   ('green', 'u4'),
+                                   ('blue', 'u4')])
 
     vertices = np.array(points, dtype=[('x', 'f4'),
                                        ('y', 'f4'),
@@ -128,24 +132,10 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
 
     PlyData([el, el2], text=True).write(plyfile)
 
-    return tf
+    return channel.shape
 
 
 if __name__ == "__main__":
-    tif2mesh("../data/tif/black_mtn_alos.tif",
-             "../data/ply/black_mtn_alos.ply",
-             int(sys.argv[1]), 3)
-
-    # data_set = gdal.Open('../data/canyon_dem_utm11.tif')
-    # gt = data_set.GetGeoTransform()
-    #
-    # lat1, lon1 = pixel2coord(gt, 0, 0)
-    # lat2, lon2 = pixel2coord(gt, 10, 10)
-    #
-    # trim(lat1, lon1, lat2, lon2, '../data/canyon_dem_utm11.tif',
-    #      '../data/test.tif')
-    #
-    # print(pixel2coord(gt, 1, 1))
-    # print(coord2pixel(gt, 478279.930, 3638571.112))
-    # x, y = pixel2coord(gt, 100, 1220)
-    # print(coord2pixel(gt, x, y))
+    print(tif2mesh("../data/tif/black_mtn_alos.tif",
+                   "../data/tif/black_mtn_alos.ply",
+                   4, 3))
