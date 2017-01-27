@@ -71,6 +71,9 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
             there are 5 different orders but I can't find the documentation on
             what they are.
 
+    Return:
+        tf (array): Geotransform Matrix
+
     """
     tif = gdal.Open(tiffile)
     tf = tif.GetGeoTransform()
@@ -124,6 +127,8 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
     el2 = PlyElement.describe(faces, 'face')
 
     PlyData([el, el2], text=True).write(plyfile)
+
+    return tf
 
 
 if __name__ == "__main__":
