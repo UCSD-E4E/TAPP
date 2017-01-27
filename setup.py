@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from distutils.core import setup
 setup(name='TAP',
       version='1.0',
@@ -15,6 +16,6 @@ setup(name='TAP',
       # add unit tests
       test_suite='tests',
 
-      py_modules=['raytri_intersect'],
-      scripts=['raytri_intersect.py']
+      py_modules=['TAPP.Camera', 'utils.gdal_utils', 'utils.ply_utils'],
+      scripts=['tapp.py']
       )
