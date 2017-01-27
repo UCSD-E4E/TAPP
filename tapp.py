@@ -2,9 +2,10 @@
 
 import argparse
 import pymesh
-import Camera
+from TAPP.Camera import Camera
 import fileinput
 import numpy as np
+from utils import gdal_utils
 
 def read_meta_file(filename, tag):
 	retval = None
@@ -36,22 +37,37 @@ def main():
 	camera_params = args.camera_params
 	poses_file = args.poses
 
+	print("Got args")
+
+	# Trim tiff
+	print("Trimming tiff")
+	target_area = np.genfromtxt(target_area_file, delimiter=',')
+	retval = gdal_utils.trim(target_area[0][1], target_area[0][0], target_area[1][1], target_area[1][0], geotiff_file, '.tmp.tiff')
 	# Load tiff to tiff->ply generator
-	# TODO remove test
-	ply_file = "../data/textured_plane.ply"
+	print("Tiff -> Mesh")
+	tf = gdal_utils.tif2mesh('.tmp.tiff', '.tmp.ply', 1, 0)
+	ply_file = '.tmp.ply'
 
 	# Load camera params
+	print("Loading camera params")
 	x_res = float(read_meta_file(camera_params, "X_RES"))
 	y_res = float(read_meta_file(camera_params, "Y_RES"))
 	fov = float(read_meta_file(camera_params, "FOV"))
-	camera = Camera(ply_file, x_res, y_res, fov)
+	camera = Camera(ply_file, x_res, y_res, fov, 0)
 
 	# Load camera poses
+	print("Loading camera poses")
 	poses = np.loadtxt(poses_file, delimiter=",", dtype={'names': ('LAT', 'LON', 'ALT', 'ROLL', 'PITCH', 'YAW'), 'formats': ('f8', 'f8', 'f8', 'f8', 'f8', 'f8')}, skiprows=1)
 	# Transform pose to local frame!
-
+	print("Processing poses")
 	for pose in poses:
+		x, y = gdal_utils.coord2pixel(tf, pose['LAT'], pose['LON'])
+		pose['LAT'] = x
+		pose['LON'] = y
+		print("%f, %f, %f, %f, %f, %f" % (pose['LAT'], pose['LON'], pose['ALT'], pose['ROLL'], pose['PITCH'], pose['YAW']))
 		camera.snap(pose)
+	print("Finished processing")
+	camera.closePly()
 
 
 if __name__ == '__main__':
