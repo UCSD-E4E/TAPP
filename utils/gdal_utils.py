@@ -16,8 +16,8 @@ def pixel2coord(tf, x, y):
 
 def coord2pixel(tf, lat, lon):
     """Transforms lat/lon coordinates to pixel coordinates"""
-    x = int(round((lat-tf[0])/tf[1]))
-    y = int(round((lon-tf[3])/tf[5]))
+    x = int(round((lon-tf[0])/tf[1]))
+    y = int(round((lat-tf[3])/tf[5]))
 
     return x, y
 
