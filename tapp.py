@@ -13,6 +13,16 @@ from utils import gdal_utils
 
 
 def read_meta_file(filename, tag):
+    """Reads a tag from a metadata file
+
+        Args:
+            filename (string):  Metadata filepath
+            tag (string):       Tag to read
+
+        Return:
+            value (string): The first value referenced by the tag
+    """
+
     retval = None
     for line in fileinput.input(filename):
         if tag == line.strip().split(':')[0].strip():
@@ -23,6 +33,7 @@ def read_meta_file(filename, tag):
 
 
 def main():
+    """Main script logic"""
     parser = argparse.ArgumentParser(
         description = 'TAPP Camera Pose Coverage Analysis')
     parser.add_argument('geotiff', action='store', type=str, 
