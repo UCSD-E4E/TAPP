@@ -8,7 +8,8 @@ import fileinput
 import numpy as np
 from utils import gdal_utils
 
-from TAPP import Camera
+from TAPP.Camera import Camera
+from osgeo import gdal
 
 
 def read_meta_file(filename, tag):
@@ -50,7 +51,7 @@ def main():
 	retval = gdal_utils.trim(target_area[0][1], target_area[0][0], target_area[1][1], target_area[1][0], geotiff_file, '.tmp.tiff')
 	# Load tiff to tiff->ply generator
 	print("Tiff -> Mesh")
-	tf = gdal_utils.tif2mesh('.tmp.tiff', '.tmp.ply', 1, 0)
+	retval = gdal_utils.tif2mesh('.tmp.tiff', '.tmp.ply', 1, 0)
 	ply_file = '.tmp.ply'
 
 	# Load camera params
@@ -64,6 +65,8 @@ def main():
 	print("Loading camera poses")
 	poses = np.loadtxt(poses_file, delimiter=",", dtype={'names': ('LAT', 'LON', 'ALT', 'ROLL', 'PITCH', 'YAW'), 'formats': ('f8', 'f8', 'f8', 'f8', 'f8', 'f8')}, skiprows=1)
 	# Transform pose to local frame!
+	tif = gdal.Open(geotiff_file)
+	tf = tif.GetGeoTransform()
 	print("Processing poses")
 	for pose in poses:
 		x, y = gdal_utils.coord2pixel(tf, pose['LAT'], pose['LON'])
