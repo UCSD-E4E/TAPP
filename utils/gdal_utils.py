@@ -79,9 +79,6 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
     tif = gdal.Open(tiffile)
     tf = tif.GetGeoTransform()
 
-    faces = []
-    cnt = 0
-
     # Get image x,y,z
     channel = tif.GetRasterBand(1)
     no_value = channel.GetNoDataValue()
@@ -92,29 +89,29 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
     # Upsample the image with cubic interpolation
     channel = scipy.ndimage.zoom(channel, upsample, order=interpolation)
 
+    rows = channel.shape[0]
+    cols = channel.shape[1]
+
     # Create our point cloud with excessive use of list comprehension
-    # TODO: We need to keep in mind that the pixel size should change with
-    # upsampling
+    # TODO: Pixel size should change with upsampling
     points = [(col*tf[1], row*tf[5], channel[row][col])
               if channel[row][col] != no_value else
               (col*tf[1], row*tf[5], 0.)
-              for row in range(channel.shape[0])
-              for col in range(channel.shape[1])]
+              for row in range(rows)
+              for col in range(cols)]
 
     # Create faces from grid. Basically this is just turning  a grid into
     # triangles
-    for row in range(channel.shape[0]-1):
-        for col in range(channel.shape[1]):
-            if col is not channel.shape[1]-1:
-                v1 = cnt
-                v2 = cnt + 1
-                v3 = cnt + channel.shape[1] + 1
-                v4 = cnt + channel.shape[1]
+    faces = []
+    for row in range(rows-1):
+        for col in range(cols-1):
+            v1 = row*cols + col
+            v2 = row*cols + col + 1
+            v3 = (row+1)*cols + col + 1
+            v4 = (row+1)*cols + col
 
-                faces.append(([v1, v2, v3], 0, 0, 0))
-                faces.append(([v1, v4, v3], 0, 0, 0))
-
-            cnt = cnt + 1
+            faces.append(([v1, v2, v3], 0, 0, 0))
+            faces.append(([v1, v4, v3], 0, 0, 0))
 
     # Create np array for turning vertices and faces into a ply file
     faces = np.array(faces, dtype=[('vertex_indices', 'i4', (3,)),
@@ -137,5 +134,9 @@ def tif2mesh(tiffile, plyfile, upsample, interpolation):
 
 if __name__ == "__main__":
     print(tif2mesh("../data/tif/black_mtn_alos.tif",
-                   "../data/tif/black_mtn_alos.ply",
-                   4, 3))
+                   "../data/ply/black_mtn_alos.ply",
+                   25, 0))
+    #
+    # print(tif2mesh("../data/tif/canyon_dem_clipped.tif",
+    #                "../data/ply/canyon_dem_clipped.ply",
+    #                1, 3))
