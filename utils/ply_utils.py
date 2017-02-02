@@ -39,10 +39,9 @@ def colorize(filename):
 
     # Create new set of faces with color attribute
     # NOTE: This may take a while for large mesh files
-    faces = [(face[0].tolist(), 0, 0, 0, 0) for face in faces]
+    faces = [(face[0].tolist(), 0, 0, 0) for face in faces]
 
     faces = np.array(faces, dtype=[('vertex_indices', 'i4', (3,)),
-                                   ('counter', 'i4'),
                                    ('red', 'u1'),
                                    ('green', 'u1'),
                                    ('blue', 'u1')])
