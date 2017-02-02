@@ -16,6 +16,8 @@ class Camera(object):
         self._infile = infile
         self._id = _id
 
+        self._create_rays()
+
         # TODO: Decide what should happen here
         try:
             self._plydata = PlyData.read(infile)
@@ -46,15 +48,16 @@ class Camera(object):
         faces = self._plydata['face'].data
         vertices = self._plydata['vertex'].data
 
+        # TODO: Use RPY for calculations as well
+        pose = np.array([pose[0], pose[1], pose[2]])
+
         for face in faces:
-            vert0, vert1, vert2 = \
-                ply_utils.face2vertices(face[0], vertices)
+            vert0, vert1, vert2 = ply_utils.face2vertices(face[0], vertices)
 
             # TODO: Come up with coloring schema
             for idx, ray in enumerate(self._rays):
                 ret = self._check_intersection(pose, ray, vert0, vert1, vert2)
                 face[1] = face[1] + ret
-                face[2] = face[2] + ret
 
         self._plydata['face'].data = faces
 
