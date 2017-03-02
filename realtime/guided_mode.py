@@ -36,6 +36,8 @@ def lrf_thread(arg):
 	global alt
 	while True:
 		line = port.readline()
+		if len(line.split()) != 4:
+			continue
 		alt = float(line.split()[0])
 		alt = 30 # for testing
 
