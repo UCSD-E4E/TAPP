@@ -6,7 +6,11 @@ import utm
 import numpy as np
 from threading import Thread
 import serial
-# import picamera
+try:
+	import picamera
+	noPiCamera = False
+except ImportError:
+	noPiCamera = True
 import os
 from pexif import JpegFile
 
@@ -24,10 +28,13 @@ def do_trigger_camera(arg):
 	global OUTPUT_DIR
 	image_name = os.path.join(OUTPUT_DIR, '%s_%d.jpg' % ('img', img_num))
 	print(image_name)
-	# camera.capture(image_name)
-	# ef = JpegFile.fromFile(image_name)
-	# ef.set_geo(arg[0], arg[1])
-	# ef.writeFile(image_name)
+	if noPiCamera:
+		pass
+	else:
+		camera.capture(image_name)
+		ef = JpegFile.fromFile(image_name)
+		ef.set_geo(arg[0], arg[1])
+		ef.writeFile(image_name)
 	img_num = img_num + 1
 
 
@@ -62,6 +69,14 @@ def getTakeoffIdx(waypoints):
 			return i
 
 
+def setMode(mode):
+	mav_master.set_mode(mav_master.mode_mapping()[mode])	
+	msg = mav_master.recv_match(blocking=True, timeout=10, type='COMMAND_ACK')
+	if msg.result != 0:
+		print("Failed to set mode!")
+	else:
+		print("Mode set to %s" % mode)
+
 if __name__ == '__main__':
 	targs = '/dev/ttyUSB0'
 	t = Thread(target=lrf_thread, args = {targs})
@@ -80,12 +95,7 @@ if __name__ == '__main__':
 		print("Not Disarmed!")
 		exit()
 
-	mav_master.set_mode(mav_master.mode_mapping()['GUIDED'])	
-	msg = mav_master.recv_match(blocking=True, timeout=10, type='COMMAND_ACK')
-	if msg.result != 0:
-		print("Failed to set mode!")
-	else:
-		print("Mode set to GUIDED")
+	setMode('GUIDED')
 	mav_master.arducopter_arm()
 	msg = mav_master.recv_match(blocking=True, timeout=10, type='COMMAND_ACK')
 	if msg.result != 0:
@@ -150,7 +160,7 @@ if __name__ == '__main__':
 			int(waypoints[i].z),
 			5, # vx
 			0, # vy
-			targetVelocity, # vz
+			0, # vz
 			2, # afx
 			2, # afy
 			2, # afz
@@ -203,13 +213,7 @@ if __name__ == '__main__':
 					numTriggers = numTriggers + 1
 			prevLocation = currentLocation
 
-	mav_master.set_mode(mav_master.mode_mapping()['RTL'])	
-	msg = mav_master.recv_match(blocking=True, timeout=10, type='COMMAND_ACK')
-	if msg.result != 0:
-		print("Failed to set mode!")
-	else:
-		print("Mode set to RTL")
-
+	setMode('RTL')
 	while True:
 		msg = mav_master.recv_match(blocking=True, timeout=10)
 		if msg.get_type() == 'HEARTBEAT':

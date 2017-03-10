@@ -1,0 +1,7 @@
+#!/bin/bash
+
+cp guided_mode.py /usr/sbin/tapp_guided_mode.py
+chmod +x /usr/sbin/tapp_guided_mode.py
+cp init-script /etc/init.d/TAPP
+chmod +x /etc/init.d/TAPP
+update-rc.d defaults

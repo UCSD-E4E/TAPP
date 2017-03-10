@@ -1,0 +1,53 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: TAPP
+# Required-Start: $remote_fs dhcpcd
+# Required-Stop:
+# Should-Start:
+# Default-Start: 2 3 4 5
+# Default-Stop:
+# Short-Description: TAPP
+# Description: This script starts/stops TAPP
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+. /lib/init/vars.sh
+
+STATUSFILE="/tmp/TAPP-status"
+
+if [ $( id -u ) != 0 ]; then
+	echo "ERROR: Must be run as root"
+	exit 1
+fi
+
+case "$1" in
+	start)
+		if [ ! -f /var/run/TAPP.pid ]; then
+			echo "Starting TAPP"
+			/usr/sbin/tapp_guided_mode.py > /dev/null &
+			echo $! > /var/run/TAPP.pid
+		fi
+		;;
+	stop)
+		kill $(cat /var/run/TAPP.pid)
+		rm /var/run/TAPP.pid
+		;;
+	restart|reload)
+		kill $(cat /var/run/TAPP.pid)
+		/usr/sbin/tapp_guided_mode.py > /dev/null &
+		echo $! > /var/run/TAPP.pid
+		;;
+	status)
+		if [ -f /var/run/TAPP.pid ]; then
+			if [ ps -p $(cat /var/run/TAPP.pid) > /dev/null ]; then
+				exit 0
+			else
+				exit 1
+			fi
+		else
+			exit 3
+		fi
+		;;
+esac
+
+exit 0
