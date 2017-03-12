@@ -16,12 +16,14 @@ from pexif import JpegFile
 
 alt = 0
 img_num = 0
-TARGET_ALT = 30
+TARGET_ALT = 50
 OUTPUT_DIR = './'
 
 def do_setup_camera():
 	global camera
 	camera = picamera.PiCamera()
+	camera.resolution = camera.MAX_RESOLUTION
+
 
 def do_trigger_camera(arg):
 	global img_num
